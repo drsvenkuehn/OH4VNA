@@ -2,7 +2,7 @@
 
 This file preserves the development context and decisions made during the initial OH4VNA implementation to ensure seamless continuation across systems.
 
-## 🏗️ Project Genesis & Requirements
+## Project Genesis & Requirements
 
 ### Original Vision
 - **Goal**: Recreate SPEAG OH4VNA software functionality in Python
@@ -13,7 +13,7 @@ This file preserves the development context and decisions made during the initia
 
 ### Key Design Decisions
 1. **Web-based Interface**: Streamlit chosen for modern, accessible UI
-2. **Professional VNA Workflow**: Traditional calibration → measurement → analysis flow
+2. **Professional VNA Workflow**: Traditional calibration -> measurement -> analysis flow
 3. **Z43 Design System**: Corporate design guidelines strictly followed
 4. **Simulation Mode**: Built-in testing without hardware requirements
 5. **Services Architecture**: Clean separation for scalability

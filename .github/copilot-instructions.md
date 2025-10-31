@@ -1,6 +1,6 @@
 # OH4VNA Project - Copilot Instructions
 
-## 🎯 Project Overview
+## Project Overview
 OH4VNA is a Python-based VNA (Vector Network Analyzer) measurement application that recreates SPEAG OH4VNA functionality using modern web technologies.
 
 ### Core Architecture
@@ -9,7 +9,7 @@ OH4VNA is a Python-based VNA (Vector Network Analyzer) measurement application t
 - **Target Hardware**: Rohde & Schwarz ZVA series VNA
 - **Data Format**: Touchstone files with JSON metadata persistence
 
-## 🎨 Z43 Design System Compliance
+## Z43 Design System Compliance
 **CRITICAL**: Always follow Z43 corporate design guidelines from gui.z43.swiss
 
 ### Official Color Palette (Use Exact Values)
@@ -24,7 +24,7 @@ OH4VNA is a Python-based VNA (Vector Network Analyzer) measurement application t
 - CSS design tokens using custom properties
 - Simple text labels in navigation (no emojis)
 
-## 🏗️ Architecture Guidelines
+## Architecture Guidelines
 
 ### Services Layer Pattern
 ```
@@ -45,13 +45,13 @@ oh4vna/
 3. **Measurement**: Sweep configuration and execution
 4. **Analysis**: Data visualization and processing
 
-## 📊 Data Management
+## Data Management
 - **Touchstone Files**: Standard S-parameter format for measurements
 - **JSON Metadata**: Timestamps, configuration, instrument info
 - **Traceable Archiving**: Serial number and date-based organization
 - **Kit Management**: Calibration standard definitions and history
 
-## 🔧 Development Standards
+## Development Standards
 
 ### Code Quality
 - Full type hints throughout codebase
@@ -73,19 +73,19 @@ pip install -e .
 streamlit run app.py
 ```
 
-## 📝 Context Preservation
+## Context Preservation
 **Important**: See `.github/copilot-context.md` for complete conversation history and technical decisions made during initial implementation.
 
-## 🚀 Key Features Implemented
-- ✅ Complete Z43 design system with official corporate colors
-- ✅ Professional VNA calibration workflow (SOL/SOLT)
-- ✅ Real-time Smith chart monitoring during calibration
-- ✅ OH4VNA 3-port coupler analytical model integration
-- ✅ Touchstone persistence with JSON metadata
-- ✅ Simulation mode for offline development
-- ✅ Clean services architecture for scalability
+## Key Features Implemented
+- Complete Z43 design system with official corporate colors
+- Professional VNA calibration workflow (SOL/SOLT)
+- Real-time Smith chart monitoring during calibration
+- OH4VNA 3-port coupler analytical model integration
+- Touchstone persistence with JSON metadata
+- Simulation mode for offline development
+- Clean services architecture for scalability
 
-## ⚠️ Critical Notes
+## Critical Notes
 - **Z43 Compliance**: Never use generic colors - always use exact Z43 palette
 - **Professional Workflow**: Maintain traditional VNA measurement sequence
 - **Simulation Support**: Ensure offline development capabilities remain functional
