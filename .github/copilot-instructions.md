@@ -1,103 +1,92 @@
-<!-- Use this file to provide workspace-specific custom instructions to Copilot. For more details, visit https://code.visualstudio.com/docs/copilot/copilot-customization#_use-a-githubcopilotinstructionsmd-file -->
-- [x] Verify that the copilot-instructions.md file in the .github directory is created.
+# OH4VNA Project - Copilot Instructions
 
-- [x] Clarify Project Requirements
-	<!-- Python VNA measurement application with Streamlit frontend, scikit-rf backend, Rohde & Schwarz ZVA support, Touchstone persistence, JSON metadata -->
+## 🎯 Project Overview
+OH4VNA is a Python-based VNA (Vector Network Analyzer) measurement application that recreates SPEAG OH4VNA functionality using modern web technologies.
 
-- [x] Scaffold the Project
-	<!--
-	Ensure that the previous step has been marked as completed.
-	Call project setup tool with projectType parameter.
-	Run scaffolding command to create project files and folders.
-	Use '.' as the working directory.
-	If no appropriate projectType is available, search documentation using available tools.
-	Otherwise, create the project structure manually using available file creation tools.
-	-->
+### Core Architecture
+- **Frontend**: Streamlit web application with Z43 corporate design system
+- **Backend**: scikit-rf for RF analysis, PyVISA for instrument control
+- **Target Hardware**: Rohde & Schwarz ZVA series VNA
+- **Data Format**: Touchstone files with JSON metadata persistence
 
-- [x] Customize the Project
-	<!--
-	Verify that all previous steps have been completed successfully and you have marked the step as completed.
-	Develop a plan to modify codebase according to user requirements.
-	Apply modifications using appropriate tools and user-provided references.
-	Skip this step for "Hello World" projects.
-	-->
+## 🎨 Z43 Design System Compliance
+**CRITICAL**: Always follow Z43 corporate design guidelines from gui.z43.swiss
 
-- [x] Install Required Extensions
-	<!-- ONLY install extensions provided mentioned in the get_project_setup_info. Skip this step otherwise and mark as completed. -->
+### Official Color Palette (Use Exact Values)
+- **S4L Blue**: `#0090D0` - Primary brand color, magnitude plots
+- **SPEAG Yellow**: `#FFDD00` - Secondary accent color
+- **S4L Orange**: `#FF9200` - Warning/highlight, phase plots  
+- **ISO Prohibition Red**: `#9B2423` - Error states
 
-- [x] Compile the Project
-	<!--
-	Verify that all previous steps have been completed.
-	Install any missing dependencies.
-	Run diagnostics and resolve any issues.
-	Check for markdown files in project folder for relevant instructions on how to do this.
-	-->
+### Design Principles
+- Clean, professional typography and layout
+- WCAG-compliant contrast ratios for accessibility
+- CSS design tokens using custom properties
+- Simple text labels in navigation (no emojis)
 
-- [ ] Create and Run Task
-	<!--
-	Verify that all previous steps have been completed.
-	Check https://code.visualstudio.com/docs/debugtest/tasks to determine if the project needs a task. If so, use the create_and_run_task to create and launch a task based on package.json, README.md, and project structure.
-	Skip this step otherwise.
-	 -->
+## 🏗️ Architecture Guidelines
 
-- [ ] Launch the Project
-	<!--
-	Verify that all previous steps have been completed.
-	Prompt user for debug mode, launch only if confirmed.
-	 -->
+### Services Layer Pattern
+```
+oh4vna/
+├── instrument/     # VNA abstraction (base, R&S, simulation)
+├── services/       # Business logic (instrument, calibration, measurement)
+└── data/          # Models and persistence (Pydantic + repository pattern)
+```
 
-- [ ] Ensure Documentation is Complete
-	<!--
-	Verify that all previous steps have been completed.
-	Verify that README.md and the copilot-instructions.md file in the .github directory exists and contains current project information.
-	Clean up the copilot-instructions.md file in the .github directory by removing all HTML comments.
-	 -->
+### Key Services
+- **InstrumentManager**: Connection state and instrument selection
+- **CalibrationService**: SOL/SOLT workflow with live Smith charts
+- **MeasurementService**: Sweep orchestration and data persistence
 
-<!--
-## Execution Guidelines
-PROGRESS TRACKING:
-- If any tools are available to manage the above todo list, use it to track progress through this checklist.
-- After completing each step, mark it complete and add a summary.
-- Read current todo list status before starting each new step.
+### Professional VNA Workflow
+1. **Connection**: Instrument detection and setup
+2. **Calibration**: Traditional SOL/SOLT sequence with live monitoring
+3. **Measurement**: Sweep configuration and execution
+4. **Analysis**: Data visualization and processing
 
-COMMUNICATION RULES:
-- Avoid verbose explanations or printing full command outputs.
-- If a step is skipped, state that briefly (e.g. "No extensions needed").
-- Do not explain project structure unless asked.
-- Keep explanations concise and focused.
+## 📊 Data Management
+- **Touchstone Files**: Standard S-parameter format for measurements
+- **JSON Metadata**: Timestamps, configuration, instrument info
+- **Traceable Archiving**: Serial number and date-based organization
+- **Kit Management**: Calibration standard definitions and history
 
-DEVELOPMENT RULES:
-- Use '.' as the working directory unless user specifies otherwise.
-- Avoid adding media or external links unless explicitly requested.
-- Use placeholders only with a note that they should be replaced.
-- Use VS Code API tool only for VS Code extension projects.
-- Once the project is created, it is already opened in Visual Studio Code—do not suggest commands to open this project in Visual Studio again.
-- If the project setup information has additional rules, follow them strictly.
+## 🔧 Development Standards
 
-FOLDER CREATION RULES:
-- Always use the current directory as the project root.
-- If you are running any terminal commands, use the '.' argument to ensure that the current working directory is used ALWAYS.
-- Do not create a new folder unless the user explicitly requests it besides a .vscode folder for a tasks.json file.
-- If any of the scaffolding commands mention that the folder name is not correct, let the user know to create a new folder with the correct name and then reopen it again in vscode.
+### Code Quality
+- Full type hints throughout codebase
+- Pydantic models for data validation
+- Comprehensive error handling and logging
+- Docstrings and inline documentation
 
-EXTENSION INSTALLATION RULES:
-- Only install extension specified by the get_project_setup_info tool. DO NOT INSTALL any other extensions.
+### Testing Approach
+- **Simulation Mode**: Built-in testing without hardware (default)
+- **Hardware Mode**: Real VNA operation when available
+- Mock instruments for unit testing
 
-PROJECT CONTENT RULES:
-- If the user has not specified project details, assume they want a "Hello World" project as a starting point.
-- Avoid adding links of any type (URLs, files, folders, etc.) or integrations that are not explicitly required.
-- Avoid generating images, videos, or any other media files unless explicitly requested.
-- If you need to use any media assets as placeholders, let the user know that these are placeholders and should be replaced with the actual assets later.
-- Ensure all generated components serve a clear purpose within the user's requested workflow.
-- If a feature is assumed but not confirmed, prompt the user for clarification before including it.
-- If you are working on a VS Code extension, use the VS Code API tool with a query to find relevant VS Code API references and samples related to that query.
+### Environment Setup
+```bash
+# Standard development setup
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+streamlit run app.py
+```
 
-TASK COMPLETION RULES:
-- Your task is complete when:
-  - Project is successfully scaffolded and compiled without errors
-  - copilot-instructions.md file in the .github directory exists in the project
-  - README.md file exists and is up to date
-  - User is provided with clear instructions to debug/launch the project
+## 📝 Context Preservation
+**Important**: See `.github/copilot-context.md` for complete conversation history and technical decisions made during initial implementation.
 
-Before starting a new task in the above plan, update progress in the plan.
--->
+## 🚀 Key Features Implemented
+- ✅ Complete Z43 design system with official corporate colors
+- ✅ Professional VNA calibration workflow (SOL/SOLT)
+- ✅ Real-time Smith chart monitoring during calibration
+- ✅ OH4VNA 3-port coupler analytical model integration
+- ✅ Touchstone persistence with JSON metadata
+- ✅ Simulation mode for offline development
+- ✅ Clean services architecture for scalability
+
+## ⚠️ Critical Notes
+- **Z43 Compliance**: Never use generic colors - always use exact Z43 palette
+- **Professional Workflow**: Maintain traditional VNA measurement sequence
+- **Simulation Support**: Ensure offline development capabilities remain functional
+- **Context Continuity**: Reference `.github/copilot-context.md` for implementation history
