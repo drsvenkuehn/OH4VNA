@@ -1,0 +1,25 @@
+# OH4VNA Configuration Example
+# Copy this file to settings.yaml and modify as needed
+
+# Application settings
+debug: false
+simulation_mode: true  # Set to false for real VNA hardware
+
+# Data storage paths
+data_root: "./data"
+touchstone_dir: "./data/touchstone"
+metadata_dir: "./data/metadata"
+
+# VNA connection settings
+vna_address: "TCPIP::192.168.1.100::INSTR"  # Update with your VNA IP
+vna_timeout: 30000  # milliseconds
+
+# Measurement defaults
+default_start_freq: 1000000      # 1 MHz
+default_stop_freq: 6000000000    # 6 GHz
+default_points: 201
+default_if_bandwidth: 1000       # Hz
+default_power: -10               # dBm
+
+# Calibration kit
+cal_kit_name: "Unknown"  # Update with your calibration kit name

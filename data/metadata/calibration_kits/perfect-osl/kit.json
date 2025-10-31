@@ -1,0 +1,13 @@
+{
+  "id": "perfect-osl",
+  "name": "Perfect OSL",
+  "files": {
+    "open": "data/metadata/calibration_kits/perfect-osl/MCK4OH_SN0000_20251021/open.s1p",
+    "short": "data/metadata/calibration_kits/perfect-osl/MCK4OH_SN0000_20251021/short.s1p",
+    "load": "data/metadata/calibration_kits/perfect-osl/MCK4OH_SN0000_20251021/load.s1p"
+  },
+  "serial": "0000",
+  "calibration_date": "20251021",
+  "bundle": "data/metadata/calibration_kits/perfect-osl/MCK4OH_SN0000_20251021",
+  "created_at": "2025-10-21T19:19:45.286795"
+}

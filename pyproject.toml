@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "oh4vna"
+version = "0.1.0"
+description = "VNA measurement application with Streamlit frontend and scikit-rf backend"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+    {name = "Developer", email = "developer@example.com"},
+]
+license = {text = "MIT"}
+dependencies = [
+    "streamlit>=1.28.0",
+    "scikit-rf>=0.29.0",
+    "pyvisa>=1.13.0",
+    "plotly>=5.17.0",
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "python-dotenv>=1.0.0",
+    "matplotlib>=3.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+    "jupyterlab>=4.0.0",
+    "invoke>=2.2.0",
+]
+
+[project.scripts]
+oh4vna-app = "oh4vna.app:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["oh4vna*"]
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
+
+[tool.isort]
+profile = "black"
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
