@@ -351,32 +351,32 @@ def main() -> None:
         with status_col2:
             if calibration_service.is_valid():
                 cal_record = calibration_service.current
-                st.markdown('<span class="status-connected">✅ Calibrated</span>', unsafe_allow_html=True)
+                st.markdown('<span class="status-connected">Calibrated</span>', unsafe_allow_html=True)
                 if cal_record:
-                    st.caption(f"🕒 {cal_record.timestamp.strftime('%H:%M')}")
+                    st.caption(f"Last: {cal_record.timestamp.strftime('%H:%M')}")
             else:
-                st.markdown('<span class="status-warning">⚠️ Calibration Required</span>', unsafe_allow_html=True)
+                st.markdown('<span class="status-warning">Calibration Required</span>', unsafe_allow_html=True)
                 st.caption("Perform calibration before measuring")
         
         with status_col3:
             recent_measurements = measurement_service.list_recent(limit=1)
             if recent_measurements:
                 last_measurement = recent_measurements[0]
-                st.markdown('<span class="status-connected">📊 Ready</span>', unsafe_allow_html=True)
-                st.caption(f"🕒 Last: {last_measurement.timestamp.strftime('%H:%M')}")
+                st.markdown('<span class="status-connected">Ready</span>', unsafe_allow_html=True)
+                st.caption(f"Last: {last_measurement.timestamp.strftime('%H:%M')}")
             else:
-                st.markdown('<span class="status-warning">📊 No Data</span>', unsafe_allow_html=True)
+                st.markdown('<span class="status-warning">No Data</span>', unsafe_allow_html=True)
                 st.caption("No measurements recorded")
 
     render_sidebar(manager, calibration_service)
 
     # Z43 Guideline: Consistent tab naming and organization
     tabs = st.tabs([
-        "🏠 Home",
-        "🔧 Calibration", 
-        "📏 Measurement",
+        "Home",
+        "Calibration", 
+        "Measurement",
         "� Analysis",
-        "⚙️ Settings",
+        "Settings",
     ])
 
     with tabs[0]:
@@ -512,7 +512,7 @@ def render_sidebar(manager: InstrumentManager, calibration_service: CalibrationS
             st.markdown('</div>', unsafe_allow_html=True)
 
         # Z43 Guideline: Discoverable connection options
-        with st.expander("⚙️ Connection Settings", expanded=not status["connected"]):
+        with st.expander("Connection Settings", expanded=not status["connected"]):
             with st.form("connection_form", clear_on_submit=False):
                 st.markdown("**Instrument Configuration**")
                 
@@ -541,22 +541,22 @@ def render_sidebar(manager: InstrumentManager, calibration_service: CalibrationS
                 
                 if submitted:
                     try:
-                        with st.spinner("🔄 Connecting to instrument..."):
+                        with st.spinner("Connecting to instrument..."):
                             manager.connect(
                                 instrument_type=instrument_type,
                                 address=address or None,
                             )
-                        st.success("✅ Instrument connected")
+                        st.success("Instrument connected")
                         st.rerun()
                     except Exception as exc:
-                        st.error(f"❌ Connection failed: {exc}")
+                        st.error(f"Connection failed: {exc}")
 
         # Z43 Guideline: Show calibration status in sidebar
         st.markdown("## Calibration Status")
         if calibration_service.is_valid():
             record = calibration_service.current
             st.markdown('<div class="calibration-progress progress-complete">', unsafe_allow_html=True)
-            st.markdown("**✅ Valid**")
+            st.markdown("**Valid**")
             if record:
                 st.markdown(f"*{record.method} • {record.timestamp.strftime('%H:%M')}*")
                 if record.calibration_kit_name:
@@ -564,7 +564,7 @@ def render_sidebar(manager: InstrumentManager, calibration_service: CalibrationS
             st.markdown('</div>', unsafe_allow_html=True)
         else:
             st.markdown('<div class="calibration-progress progress-warning">', unsafe_allow_html=True)
-            st.markdown("**⚠️ Required**")
+            st.markdown("**Required**")
             st.markdown("*Use Calibration tab*")
             st.markdown('</div>', unsafe_allow_html=True)
 
@@ -572,7 +572,7 @@ def render_sidebar(manager: InstrumentManager, calibration_service: CalibrationS
         st.markdown("## Quick Setup")
         config = get_measurement_config()
         
-        with st.expander("📊 Measurement Config"):
+        with st.expander("Measurement Config"):
             st.metric("Frequency Range", f"{config.start_freq/1e6:.1f} - {config.stop_freq/1e6:.1f} MHz")
             st.metric("Data Points", f"{config.points}")
             st.metric("Power Level", f"{config.power} dBm")
@@ -750,14 +750,14 @@ def render_overview_tab(
         with col2:
             if calibration_service.is_valid(port_count=1):
                 st.markdown('<div class="calibration-progress progress-complete">', unsafe_allow_html=True)
-                st.markdown("**✅ Calibrated**")
+                st.markdown("**Calibrated**")
                 active_cal = calibration_service.current
                 if active_cal:
                     st.markdown(f"*{active_cal.timestamp.strftime('%H:%M')}*")
                 st.markdown('</div>', unsafe_allow_html=True)
             else:
                 st.markdown('<div class="calibration-progress progress-warning">', unsafe_allow_html=True)
-                st.markdown("**⚠️ Calibration Required**")
+                st.markdown("**Calibration Required**")
                 st.markdown("*Use Calibration tab*")
                 st.markdown('</div>', unsafe_allow_html=True)
         
@@ -766,12 +766,12 @@ def render_overview_tab(
             measurement_ready = manager.is_connected and calibration_service.is_valid()
             if measurement_ready:
                 st.markdown('<div class="calibration-progress progress-complete">', unsafe_allow_html=True)
-                st.markdown("**📊 Ready to Measure**")
+                st.markdown("**Ready to Measure**")
                 st.markdown("*All systems operational*")
                 st.markdown('</div>', unsafe_allow_html=True)
             else:
                 st.markdown('<div class="calibration-progress progress-pending">', unsafe_allow_html=True)
-                st.markdown("**📊 Not Ready**")
+                st.markdown("**Not Ready**")
                 st.markdown("*Complete setup first*")
                 st.markdown('</div>', unsafe_allow_html=True)
     
@@ -788,19 +788,19 @@ def render_overview_tab(
         {
             "title": "2. Perform Calibration", 
             "description": "Run SOL calibration using the Calibration tab",
-            "icon": "🔧",
+            "icon": "",
             "completed": calibration_service.is_valid()
         },
         {
             "title": "3. Make Measurements",
             "description": "Configure and capture measurements in the Measurement tab",
-            "icon": "📏", 
+            "icon": "", 
             "completed": measurement_ready
         },
         {
             "title": "4. Analyze Results",
             "description": "Review measurement history and export data",
-            "icon": "📊",
+            "icon": "",
             "completed": False  # Always show as available
         }
     ]
@@ -853,18 +853,18 @@ def render_calibration_tab(
     if "cal_wizard_standards" not in st.session_state:
         st.session_state["cal_wizard_standards"] = {}
 
-    st.header("🔧 Single-Port Calibration (SOL)")
+    st.header("Single-Port Calibration (SOL)")
     
     # Show current measurement configuration
     config = get_measurement_config()
-    with st.expander("📊 Measurement Configuration", expanded=False):
+    with st.expander("Measurement Configuration", expanded=False):
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("Start", f"{config.start_freq/1e6:.3f} MHz")
         col2.metric("Stop", f"{config.stop_freq/1e6:.3f} MHz")
         col3.metric("Points", int(config.points))
         col4.metric("Port", f"Port 1 (S11)")
         
-        if st.button("⚙️ Apply Setup to Instrument", type="secondary"):
+        if st.button("Apply Setup to Instrument", type="secondary"):
             try:
                 manager.configure_measurement(
                     start_freq=config.start_freq,
@@ -874,9 +874,9 @@ def render_calibration_tab(
                     power=config.power,
                     port_count=1,
                 )
-                st.success("✅ Measurement setup applied to instrument.")
+                st.success("Measurement setup applied to instrument.")
             except Exception as exc:
-                st.error(f"❌ Failed to apply setup: {exc}")
+                st.error(f"Failed to apply setup: {exc}")
 
     # Calibration kit selection
     kits = calibration_service.list_calibration_kits()
@@ -886,7 +886,7 @@ def render_calibration_tab(
         selected_kit_id = kits[0]["id"]
         st.session_state[SESSION_KEYS["selected_calibration_kit"]] = selected_kit_id
 
-    st.subheader("📦 Calibration Kit")
+    st.subheader("Calibration Kit")
     if kits:
         index = (
             [i for i, kit in enumerate(kits) if kit["id"] == selected_kit_id][0]
@@ -905,9 +905,9 @@ def render_calibration_tab(
         # Show kit details
         serial = selected_kit.get("serial", "—")
         cal_date = selected_kit.get("calibration_date", "—")
-        st.info(f"📋 **{selected_kit['name']}** • Serial: {serial} • Cal Date: {cal_date}")
+        st.info(f"**{selected_kit['name']}** • Serial: {serial} • Cal Date: {cal_date}")
     else:
-        st.warning("⚠️ No calibration kits available. Import one below.")
+        st.warning("No calibration kits available. Import one below.")
         selected_kit = None
 
     # Kit import (collapsed by default)
@@ -933,9 +933,9 @@ def render_calibration_tab(
 
         if st.button("📥 Import Kit", key="import_cal_kit_button"):
             if not kit_name_input.strip():
-                st.warning("⚠️ Please provide a name for the calibration kit.")
+                st.warning("Please provide a name for the calibration kit.")
             elif not (kit_open_file and kit_short_file and kit_load_file):
-                st.warning("⚠️ Upload all three standard files (Open, Short, Load).")
+                st.warning("Upload all three standard files (Open, Short, Load).")
             else:
                 try:
                     date_string = (
@@ -953,15 +953,15 @@ def render_calibration_tab(
                         serial=kit_serial_input,
                         calibration_date=date_string,
                     )
-                    st.success(f"✅ Imported calibration kit '{metadata['name']}'.")
+                    st.success(f"Imported calibration kit '{metadata['name']}'.")
                     st.session_state[SESSION_KEYS["selected_calibration_kit"]] = metadata["id"]
                     st.rerun()
                 except Exception as exc:
-                    st.error(f"❌ Failed to import calibration kit: {exc}")
+                    st.error(f"Failed to import calibration kit: {exc}")
 
     # Calibration wizard steps
     st.markdown("---")
-    st.subheader("🧙‍♂️ Calibration Wizard")
+    st.subheader("Calibration Wizard")
     
     standards = ["Open", "Short", "Load"]
     current_step = st.session_state["cal_wizard_step"]
@@ -973,12 +973,12 @@ def render_calibration_tab(
         with progress_cols[i]:
             if i < current_step:
                 st.markdown(f'<div class="calibration-progress progress-complete">', unsafe_allow_html=True)
-                st.markdown(f"**✅ {std}**")
+                st.markdown(f"**{std}**")
                 st.markdown("*Complete*")
                 st.markdown('</div>', unsafe_allow_html=True)
             elif i == current_step:
                 st.markdown(f'<div class="calibration-progress progress-current">', unsafe_allow_html=True)
-                st.markdown(f"**🔄 {std}**")
+                st.markdown(f"**{std}**")
                 st.markdown("*Current Step*")
                 st.markdown('</div>', unsafe_allow_html=True)
             else:
@@ -1018,21 +1018,21 @@ def render_calibration_tab(
                     
                     # Advance to next step
                     st.session_state["cal_wizard_step"] = current_step + 1
-                    st.success(f"✅ {current_standard} measurement captured!")
+                    st.success(f"{current_standard} measurement captured!")
                     st.rerun()
                     
                 except Exception as exc:
-                    st.error(f"❌ Failed to measure {current_standard}: {exc}")
+                    st.error(f"Failed to measure {current_standard}: {exc}")
         
         with col_skip:
-            if st.button("⏭️ Skip", help=f"Skip {current_standard} measurement"):
+            if st.button("Skip", help=f"Skip {current_standard} measurement"):
                 st.session_state["cal_wizard_step"] = current_step + 1
                 st.rerun()
         
         # Show Smith chart for captured standards
         captured = st.session_state["cal_wizard_standards"]
         if captured:
-            st.markdown("#### 📊 Captured Standards")
+            st.markdown("#### Captured Standards")
             chart_cols = st.columns(3)
             for i, std in enumerate(standards):
                 if std.lower() in captured:
@@ -1047,10 +1047,10 @@ def render_calibration_tab(
     
     else:
         # All standards captured - finish calibration
-        st.success("🎉 All standards measured! Ready to compute calibration.")
+        st.success("All standards measured! Ready to compute calibration.")
         
         with st.form("calibration_completion"):
-            st.markdown("#### 📝 Calibration Details")
+            st.markdown("#### Calibration Details")
             operator = st.text_input("Operator name:", value="")
             notes = st.text_area("Notes:", placeholder="Optional calibration notes...")
             
@@ -1058,7 +1058,7 @@ def render_calibration_tab(
             with col_save:
                 submitted = st.form_submit_button("💾 Save Calibration", type="primary")
             with col_restart:
-                if st.form_submit_button("🔄 Restart"):
+                if st.form_submit_button("Restart"):
                     st.session_state["cal_wizard_step"] = 0
                     st.session_state["cal_wizard_standards"] = {}
                     st.rerun()
@@ -1069,7 +1069,7 @@ def render_calibration_tab(
                 missing_standards = [std for std in ["open", "short", "load"] if std not in captured]
                 
                 if missing_standards:
-                    st.error(f"❌ Missing standards: {', '.join(missing_standards)}")
+                    st.error(f"Missing standards: {', '.join(missing_standards)}")
                 else:
                     try:
                         # Record manual calibration
@@ -1083,7 +1083,7 @@ def render_calibration_tab(
                             calibration_kit=selected_kit,
                         )
                         
-                        st.success(f"✅ Calibration saved successfully! ({record.timestamp.strftime('%Y-%m-%d %H:%M UTC')})")
+                        st.success(f"Calibration saved successfully! ({record.timestamp.strftime('%Y-%m-%d %H:%M UTC')})")
                         
                         # Reset wizard
                         st.session_state["cal_wizard_step"] = 0
@@ -1096,7 +1096,7 @@ def render_calibration_tab(
                         st.rerun()
                         
                     except Exception as exc:
-                        st.error(f"❌ Failed to save calibration: {exc}")
+                        st.error(f"Failed to save calibration: {exc}")
 
     st.markdown("---")
     st.subheader("Recent Calibrations")
@@ -1138,12 +1138,12 @@ def render_measurement_tab(
     calibration = calibration_service.current
     if not calibration:
         st.markdown('<div class="calibration-progress progress-warning">', unsafe_allow_html=True)
-        st.markdown("**⚠️ No Valid Calibration**")
+        st.markdown("**No Valid Calibration**")
         st.markdown("*Measurements will be flagged as uncalibrated*")
         st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.markdown('<div class="calibration-progress progress-complete">', unsafe_allow_html=True)
-        st.markdown("**✅ Calibrated & Ready**")
+        st.markdown("**Calibrated & Ready**")
         st.markdown(f"*{calibration.method} calibration from {calibration.timestamp.strftime('%H:%M')}*")
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -1280,12 +1280,12 @@ def render_measurement_tab(
                     averaging=int(averaging),
                     sweep_type=sweep_type,
                 ))
-                st.success("✅ Configuration saved")
+                st.success("Configuration saved")
                 st.rerun()
 
     # Z43 Guideline: Responsive measurement execution with clear feedback
     if submitted:
-        with st.spinner("🔄 Configuring instrument and executing measurement..."):
+        with st.spinner("Configuring instrument and executing measurement..."):
             try:
                 config = MeasurementConfig(
                     start_freq=float(start_mhz) * 1e6,
@@ -1317,17 +1317,17 @@ def render_measurement_tab(
                 )
                 
                 progress_bar.progress(100)
-                status_text.text("✅ Measurement completed successfully")
+                status_text.text("Measurement completed successfully")
 
                 st.session_state[SESSION_KEYS["active_record"]] = record
                 st.session_state[SESSION_KEYS["active_network"]] = network
                 label = record.config.s_parameter_label
                 filename = record.touchstone_path.name if record.touchstone_path else "Touchstone file"
-                st.success(f"📊 **Measurement Complete!** {label} → {filename}")
+                st.success(f"**Measurement Complete!** {label} → {filename}")
                 
             except Exception as exc:
-                st.error(f"❌ **Measurement Failed:** {exc}")
-                st.info("💡 Check instrument connection and calibration status")
+                st.error(f"**Measurement Failed:** {exc}")
+                st.info("Check instrument connection and calibration status")
 
     if SESSION_KEYS["active_network"] in st.session_state:
         record = st.session_state.get(SESSION_KEYS["active_record"])
@@ -1344,7 +1344,7 @@ def render_measurement_results(
 ) -> None:
     """Z43 Guideline: Clear measurement results with consistent styling."""
 
-    st.markdown("## 📊 Measurement Results")
+    st.markdown("## Measurement Results")
 
     # Z43 Guideline: Clear data summary
     config = record.config
@@ -1421,7 +1421,7 @@ def render_measurement_results(
     details_col1, details_col2 = st.columns(2)
     
     with details_col1:
-        st.markdown("**📊 Configuration**")
+        st.markdown("**Configuration**")
         details = f"""
         - **Frequency Range:** {config.start_freq/1e6:.3f} - {config.stop_freq/1e6:.3f} MHz
         - **Data Points:** {config.points}
@@ -1432,7 +1432,7 @@ def render_measurement_results(
         st.markdown(details)
         
     with details_col2:
-        st.markdown("**🕒 Session Info**")
+        st.markdown("**Session Info**")
         session_info = f"""
         - **Timestamp:** {record.timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')}
         - **Operator:** {record.operator or 'Not specified'}
@@ -1456,7 +1456,7 @@ def render_measurement_results(
     export_col1, export_col2 = st.columns(2)
     
     with export_col1:
-        if st.button("📋 Copy Data Summary", help="Copy measurement summary to clipboard"):
+        if st.button("Copy Data Summary", help="Copy measurement summary to clipboard"):
             summary_text = f"""OH4VNA Measurement Summary
 S-Parameter: {config.s_parameter_label}
 Frequency: {config.start_freq/1e6:.3f} - {config.stop_freq/1e6:.3f} MHz
@@ -1464,7 +1464,7 @@ Points: {config.points}
 Timestamp: {record.timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')}
 Calibrated: {'Yes' if record.calibration_applied else 'No'}
 """
-            st.write("📋 Summary copied to clipboard!")
+            st.write("Summary copied to clipboard!")
             
     with export_col2:
         if record.touchstone_path and record.touchstone_path.exists():
