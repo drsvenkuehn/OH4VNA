@@ -134,7 +134,7 @@ def main() -> None:
 
     st.set_page_config(
         page_title="OH4VNA - VNA Measurement Application",
-        page_icon="📡",
+        page_icon="�",
         layout="wide",
         initial_sidebar_state="expanded",
     )
@@ -333,7 +333,7 @@ def main() -> None:
     measurement_service: MeasurementService = st.session_state[SESSION_KEYS["measurement"]]
 
     # Z43 Guideline: Clear hierarchy with consistent styling
-    st.markdown("# 📡 OH4VNA - Vector Network Analyzer")
+    st.markdown("# OH4VNA - Vector Network Analyzer")
     st.markdown("### Professional RF Measurement & Calibration Platform")
     
     # Z43 Guideline: Show system status prominently for discoverability
@@ -343,7 +343,7 @@ def main() -> None:
             if manager.is_connected:
                 st.markdown('<span class="status-connected">🟢 Connected</span>', unsafe_allow_html=True)
                 instrument_info = manager.get_info()
-                st.caption(f"📍 {instrument_info.get('address', 'Unknown')}")
+                st.caption(f"Address: {instrument_info.get('address', 'Unknown')}")
             else:
                 st.markdown('<span class="status-disconnected">🔴 Disconnected</span>', unsafe_allow_html=True)
                 st.caption("No instrument connected")
@@ -532,10 +532,10 @@ def render_sidebar(manager: InstrumentManager, calibration_service: CalibrationS
                 
                 col_connect, col_disconnect = st.columns(2)
                 with col_connect:
-                    submitted = st.form_submit_button("🔌 Connect", type="primary")
+                    submitted = st.form_submit_button("Connect", type="primary")
                 with col_disconnect:
                     if status["connected"]:
-                        if st.form_submit_button("🔌 Disconnect"):
+                        if st.form_submit_button("Disconnect"):
                             manager.disconnect()
                             st.rerun()
                 
@@ -782,7 +782,7 @@ def render_overview_tab(
         {
             "title": "1. Connect Instrument",
             "description": "Use the sidebar to connect to your VNA or enable simulation mode",
-            "icon": "🔌",
+            "icon": "",
             "completed": manager.is_connected
         },
         {
@@ -834,7 +834,7 @@ def render_overview_tab(
         col_d.metric("Frequency", f"{record.config.start_freq/1e6:.1f}-{record.config.stop_freq/1e6:.1f} MHz")
         
         if record.touchstone_path:
-            st.caption(f"📁 Saved: {Path(record.touchstone_path).name}")
+            st.caption(f"Saved: {Path(record.touchstone_path).name}")
 
 
 def render_calibration_tab(
@@ -911,7 +911,7 @@ def render_calibration_tab(
         selected_kit = None
 
     # Kit import (collapsed by default)
-    with st.expander("📁 Import New Calibration Kit"):
+    with st.expander("Import New Calibration Kit"):
         kit_name_input = st.text_input("Kit name", value="", key="cal_kit_name_input")
         col_meta1, col_meta2 = st.columns(2)
         with col_meta1:
@@ -983,7 +983,7 @@ def render_calibration_tab(
                 st.markdown('</div>', unsafe_allow_html=True)
             else:
                 st.markdown(f'<div class="calibration-progress progress-pending">', unsafe_allow_html=True)
-                st.markdown(f"**⏳ {std}**")
+                st.markdown(f"**{std}**")
                 st.markdown("*Pending*")
                 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -993,12 +993,12 @@ def render_calibration_tab(
         simulation_mode = manager.get_info().get("simulation_mode", False)
         
         st.markdown(f"### Step {current_step + 1}: Connect {current_standard} Standard")
-        st.info(f"🔌 Connect the **{current_standard}** standard to Port 1 and measure.")
+        st.info(f"Connect the **{current_standard}** standard to Port 1 and measure.")
         
         col_measure, col_skip = st.columns([3, 1])
         
         with col_measure:
-            if st.button(f"📡 Measure {current_standard}", type="primary", key=f"measure_{current_standard}"):
+            if st.button(f"Measure {current_standard}", type="primary", key=f"measure_{current_standard}"):
                 try:
                     # Load fixture for simulation
                     if simulation_mode and selected_kit:
@@ -1056,7 +1056,7 @@ def render_calibration_tab(
             
             col_save, col_restart = st.columns([2, 1])
             with col_save:
-                submitted = st.form_submit_button("💾 Save Calibration", type="primary")
+                submitted = st.form_submit_button("Save Calibration", type="primary")
             with col_restart:
                 if st.form_submit_button("Restart"):
                     st.session_state["cal_wizard_step"] = 0
@@ -1265,9 +1265,9 @@ def render_measurement_tab(
         st.markdown("---")
         col_measure, col_save_config = st.columns([2, 1])
         with col_measure:
-            submitted = st.form_submit_button("📡 Run Measurement", type="primary", help="Execute measurement with current settings")
+            submitted = st.form_submit_button("Run Measurement", type="primary", help="Execute measurement with current settings")
         with col_save_config:
-            if st.form_submit_button("💾 Save Config", help="Save configuration as default"):
+            if st.form_submit_button("Save Config", help="Save configuration as default"):
                 set_measurement_config(MeasurementConfig(
                     start_freq=float(start_mhz) * 1e6,
                     stop_freq=float(stop_mhz) * 1e6,
@@ -1306,7 +1306,7 @@ def render_measurement_tab(
                 progress_bar = st.progress(0)
                 status_text = st.empty()
                 
-                status_text.text("📡 Executing measurement sweep...")
+                status_text.text("Executing measurement sweep...")
                 progress_bar.progress(50)
                 
                 record, network = measurement_service.run_measurement(
@@ -1446,7 +1446,7 @@ def render_measurement_results(
 
     # Z43 Guideline: Clear file information
     if record.touchstone_path:
-        st.markdown("### 📁 Data Files")
+        st.markdown("### Data Files")
         st.info(f"**Touchstone File:** {record.touchstone_path.name}")
         if record.metadata_path:
             st.caption(f"Metadata: {record.metadata_path.name}")
@@ -1470,7 +1470,7 @@ Calibrated: {'Yes' if record.calibration_applied else 'No'}
         if record.touchstone_path and record.touchstone_path.exists():
             with open(record.touchstone_path, 'rb') as f:
                 st.download_button(
-                    "💾 Download Touchstone",
+                    "Download Touchstone",
                     data=f.read(),
                     file_name=record.touchstone_path.name,
                     mime="text/plain",
