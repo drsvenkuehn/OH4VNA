@@ -490,228 +490,182 @@ def _normalise_measurement_config(config: MeasurementConfig) -> MeasurementConfi
 
 
 def render_sidebar(manager: InstrumentManager, calibration_service: CalibrationService) -> None:
-    """Z43 Guideline: Consistent sidebar with clear instrument status."""
+    """Sequential sidebar configuration: Instrument → Measurement Setup → Calibration."""
 
     with st.sidebar:
-        st.markdown("## Instrument Control")
+        st.markdown("# Configuration")
+        st.markdown("Complete each section in order")
+        st.markdown("---")
+        
+        # SECTION 1: Instrument (always enabled)
+        st.markdown("## 1. Instrument")
         status = manager.get_info()
+        
+        is_connected = status["connected"]
+def render_sidebar(manager: InstrumentManager, calibration_service: CalibrationService) -> None:
+    """Sequential sidebar configuration: Instrument → Measurement Setup → Calibration."""
 
-        # Z43 Guideline: Clear status indication
-        if status["connected"]:
-            st.markdown('<div class="calibration-progress progress-complete">', unsafe_allow_html=True)
-            st.markdown("**🟢 Connected**")
+    with st.sidebar:
+        st.markdown("# Configuration")
+        st.markdown("Complete each section in order")
+        st.markdown("---")
+        
+        # SECTION 1: Instrument (always enabled)
+        st.markdown("## 1. Instrument")
+        status = manager.get_info()
+        
+        is_connected = status["connected"]
+        
+        if is_connected:
+            st.success("Connected")
             if status["info"]:
                 info = status["info"]
-                st.markdown(f"*{info.get('manufacturer', 'Unknown')} {info.get('model', '')}*")
-                st.caption(f"SN: {info.get('serial', 'N/A')} • FW: {info.get('firmware', 'N/A')}")
-            st.markdown('</div>', unsafe_allow_html=True)
+                st.markdown(f"**{info.get('manufacturer', 'Unknown')} {info.get('model', '')}**")
+                st.caption(f"SN: {info.get('serial', 'N/A')}")
         else:
-            st.markdown('<div class="calibration-progress progress-pending">', unsafe_allow_html=True)
-            st.markdown("**🔴 Disconnected**")
-            st.markdown("*No instrument connected*")
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        # Z43 Guideline: Discoverable connection options
-        with st.expander("Connection Settings", expanded=not status["connected"]):
-            with st.form("connection_form", clear_on_submit=False):
-                st.markdown("**Instrument Configuration**")
-                
-                instrument_type = st.selectbox(
-                    "Type",
-                    options=["auto", "simulation", "zva"],
-                    index=0,
-                    help="Auto: Use config file • Simulation: Offline mode • ZVA: Rohde & Schwarz",
-                )
-                
-                address = st.text_input(
-                    "SCPI Address",
-                    value=status["info"].get("address", "") if status["info"] else settings.vna_address or "",
-                    help="Format: TCPIP::192.168.1.100::INSTR",
-                    disabled=instrument_type == "simulation",
-                )
-                
-                col_connect, col_disconnect = st.columns(2)
-                with col_connect:
-                    submitted = st.form_submit_button("Connect", type="primary")
-                with col_disconnect:
-                    if status["connected"]:
-                        if st.form_submit_button("Disconnect"):
-                            manager.disconnect()
-                            st.rerun()
-                
-                if submitted:
-                    try:
-                        with st.spinner("Connecting to instrument..."):
-                            manager.connect(
-                                instrument_type=instrument_type,
-                                address=address or None,
-                            )
-                        st.success("Instrument connected")
-                        st.rerun()
-                    except Exception as exc:
-                        st.error(f"Connection failed: {exc}")
-
-        # Z43 Guideline: Show calibration status in sidebar
-        st.markdown("## Calibration Status")
-        if calibration_service.is_valid():
-            record = calibration_service.current
-            st.markdown('<div class="calibration-progress progress-complete">', unsafe_allow_html=True)
-            st.markdown("**Valid**")
-            if record:
-                st.markdown(f"*{record.method} • {record.timestamp.strftime('%H:%M')}*")
-                if record.calibration_kit_name:
-                    st.caption(f"Kit: {record.calibration_kit_name}")
-            st.markdown('</div>', unsafe_allow_html=True)
-        else:
-            st.markdown('<div class="calibration-progress progress-warning">', unsafe_allow_html=True)
-            st.markdown("**Required**")
-            st.markdown("*Use Calibration tab*")
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        # Z43 Guideline: Quick measurement configuration
-        st.markdown("## Quick Setup")
-        config = get_measurement_config()
+            st.warning("Not connected")
         
-        with st.expander("Measurement Config"):
-            st.metric("Frequency Range", f"{config.start_freq/1e6:.1f} - {config.stop_freq/1e6:.1f} MHz")
-            st.metric("Data Points", f"{config.points}")
-            st.metric("Power Level", f"{config.power} dBm")
-            st.caption("Configure in Measurement tab")
-
-        if status["connected"]:
-            if st.button("Disconnect", use_container_width=True):
+        with st.form("connection_form", clear_on_submit=False):
+            instrument_type = st.selectbox(
+                "Type",
+                options=["auto", "simulation", "zva"],
+                index=0,
+                help="Auto: Use config • Simulation: Offline • ZVA: R&S",
+            )
+            
+            address = st.text_input(
+                "SCPI Address",
+                value=status["info"].get("address", "") if status["info"] else settings.vna_address or "",
+                help="Format: TCPIP::192.168.1.100::INSTR",
+                disabled=instrument_type == "simulation",
+            )
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                connect_btn = st.form_submit_button("Connect", type="primary", disabled=is_connected)
+            with col2:
+                disconnect_btn = st.form_submit_button("Disconnect", disabled=not is_connected)
+            
+            if connect_btn:
+                try:
+                    with st.spinner("Connecting..."):
+                        manager.connect(
+                            instrument_type=instrument_type,
+                            address=address or None,
+                        )
+                    st.success("Connected!")
+                    st.rerun()
+                except Exception as exc:
+                    st.error(f"Failed: {exc}")
+            
+            if disconnect_btn:
                 manager.disconnect()
                 st.rerun()
-
+        
         st.markdown("---")
-        st.subheader("Measurement Setup")
-        detected_ports = manager.get_port_count()
-        st.caption(f"Detected ports: {detected_ports}")
-        config = get_measurement_config()
-        available_ports = max(2, manager.get_port_count(), config.source_port, config.destination_port)
-        transmission_pairs = build_transmission_options(available_ports)
-        current_pair = (config.source_port, config.destination_port)
-        try:
-            current_index = transmission_pairs.index(current_pair)
-        except ValueError:
-            current_index = 0
-
-        with st.form("sidebar_measurement_config"):
-            start_mhz = st.number_input(
-                "Start (MHz)",
-                min_value=0.001,
-                max_value=67000.0,
-                value=float(config.start_freq / 1e6),
-                step=1.0,
-                format="%.3f",
-            )
-            stop_mhz = st.number_input(
-                "Stop (MHz)",
-                min_value=float(start_mhz + 0.001),
-                max_value=67000.0,
-                value=float(config.stop_freq / 1e6),
-                step=1.0,
-                format="%.3f",
-            )
-            points = st.number_input(
-                "Points",
-                min_value=11,
-                max_value=200001,
-                value=int(config.points),
-                step=10,
-            )
-            if_bw = st.number_input(
-                "IF BW (Hz)",
-                min_value=1.0,
-                max_value=1e6,
-                value=float(config.if_bandwidth),
-                step=100.0,
-            )
-            power = st.number_input(
-                "Power (dBm)",
-                min_value=-80.0,
-                max_value=30.0,
-                value=float(config.power),
-                step=1.0,
-            )
-            averaging = st.number_input(
-                "Averages",
-                min_value=1,
-                max_value=256,
-                value=int(config.averaging),
-                step=1,
-            )
-            sweep_type = st.selectbox(
-                "Sweep",
-                options=["linear", "log"],
-                index=0 if config.sweep_type == "linear" else 1,
-            )
-            selected_pair = st.selectbox(
-                "Transmission",
-                options=transmission_pairs,
-                index=current_index,
-                format_func=lambda pair: f"S{pair[1]}{pair[0]}",
-            )
-            submitted = st.form_submit_button("Apply Setup", type="secondary")
-            if submitted:
-                try:
-                    new_config = MeasurementConfig(
-                        start_freq=float(start_mhz) * 1e6,
-                        stop_freq=float(stop_mhz) * 1e6,
-                        points=int(points),
-                        if_bandwidth=float(if_bw),
-                        power=float(power),
-                        port_count=max(selected_pair),
-                        source_port=selected_pair[0],
-                        destination_port=selected_pair[1],
-                        averaging=int(averaging),
-                        sweep_type=sweep_type,
-                    )
-                    set_measurement_config(new_config)
-                    if manager.is_connected:
-                        manager.configure_measurement(
-                            start_freq=new_config.start_freq,
-                            stop_freq=new_config.stop_freq,
-                            points=new_config.points,
-                            if_bandwidth=new_config.if_bandwidth,
-                            power=new_config.power,
-                            port_count=new_config.port_count,
-                        )
-                    st.success("Measurement setup applied")
-                except Exception as exc:
-                    st.error(f"Failed to apply setup: {exc}")
-
-        st.markdown("---")
-        st.subheader("Calibration")
-        current = calibration_service.current
-        if current:
-            expires_in = (
-                current.expires_at - datetime.utcnow()
-                if current.expires_at
-                else None
-            )
-            st.write(
-                f"Last calibrated {current.timestamp.strftime('%Y-%m-%d %H:%M UTC')}"
-            )
-            st.caption(
-                f"Method: {current.method} · Ports: {current.port_count}"
-            )
-            if current.calibration_kit_name:
-                st.caption(f"Kit: {current.calibration_kit_name}")
-            if current.calibration_kit_serial or current.calibration_kit_date:
-                serial = current.calibration_kit_serial or "—"
-                cal_date = current.calibration_kit_date or "—"
-                st.caption(f"Kit serial {serial} · Date {cal_date}")
-            if expires_in:
-                minutes = int(expires_in.total_seconds() // 60)
-                st.caption(f"Valid for ~{minutes} more minutes")
+        
+        # SECTION 2: Measurement Setup (enabled only if connected)
+        st.markdown("## 2. Measurement Setup")
+        
+        if not is_connected:
+            st.info("Complete Instrument section first")
         else:
-            st.warning("No valid calibration on record")
-
+            config = get_measurement_config()
+            
+            with st.form("measurement_setup_form"):
+                start_mhz = st.number_input(
+                    "Start (MHz)",
+                    min_value=0.001,
+                    max_value=67000.0,
+                    value=float(config.start_freq / 1e6),
+                    step=1.0,
+                    format="%.3f",
+                )
+                stop_mhz = st.number_input(
+                    "Stop (MHz)",
+                    min_value=float(start_mhz + 0.001),
+                    max_value=67000.0,
+                    value=float(config.stop_freq / 1e6),
+                    step=1.0,
+                    format="%.3f",
+                )
+                points = st.number_input(
+                    "Points",
+                    min_value=11,
+                    max_value=200001,
+                    value=int(config.points),
+                    step=10,
+                )
+                if_bw = st.number_input(
+                    "IF Bandwidth (Hz)",
+                    min_value=1.0,
+                    max_value=1e6,
+                    value=float(config.if_bandwidth),
+                    step=100.0,
+                )
+                power = st.number_input(
+                    "Power (dBm)",
+                    min_value=-80.0,
+                    max_value=30.0,
+                    value=float(config.power),
+                    step=1.0,
+                )
+                
+                apply_btn = st.form_submit_button("Apply Setup", type="primary")
+                
+                if apply_btn:
+                    try:
+                        new_config = MeasurementConfig(
+                            start_freq=float(start_mhz) * 1e6,
+                            stop_freq=float(stop_mhz) * 1e6,
+                            points=int(points),
+                            if_bandwidth=float(if_bw),
+                            power=float(power),
+                            port_count=config.port_count,
+                            source_port=config.source_port,
+                            destination_port=config.destination_port,
+                            averaging=config.averaging,
+                            sweep_type=config.sweep_type,
+                        )
+                        set_measurement_config(new_config)
+                        
+                        if manager.is_connected:
+                            manager.configure_measurement(
+                                start_freq=new_config.start_freq,
+                                stop_freq=new_config.stop_freq,
+                                points=new_config.points,
+                                if_bandwidth=new_config.if_bandwidth,
+                                power=new_config.power,
+                                port_count=new_config.port_count,
+                            )
+                        st.success("Setup applied!")
+                    except Exception as exc:
+                        st.error(f"Failed: {exc}")
+        
         st.markdown("---")
-        st.caption(
-            f"Simulation mode: {'ON' if settings.simulation_mode else 'OFF'} · Data root: {settings.data_root}"
-        )
+        
+        # SECTION 3: Calibration (enabled only if measurement setup is configured)
+        st.markdown("## 3. Calibration")
+        
+        measurement_configured = is_connected
+        
+        if not measurement_configured:
+            st.info("Complete Measurement Setup first")
+        else:
+            if calibration_service.is_valid():
+                record = calibration_service.current
+                st.success("Calibrated")
+                if record:
+                    st.caption(f"Method: {record.method}")
+                    st.caption(f"Time: {record.timestamp.strftime('%H:%M')}")
+                    if record.calibration_kit_name:
+                        st.caption(f"Kit: {record.calibration_kit_name}")
+            else:
+                st.warning("Calibration required")
+                st.caption("Use Calibration tab to calibrate")
+            
+            if st.button("Go to Calibration", use_container_width=True):
+                st.session_state['active_tab'] = 1  # Switch to Calibration tab
 
 
 def render_overview_tab(
