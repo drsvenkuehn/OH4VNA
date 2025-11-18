@@ -493,179 +493,255 @@ def render_sidebar(manager: InstrumentManager, calibration_service: CalibrationS
     """Sequential sidebar configuration: Instrument → Measurement Setup → Calibration."""
 
     with st.sidebar:
-        st.markdown("# Configuration")
-        st.markdown("Complete each section in order")
-        st.markdown("---")
-        
         # SECTION 1: Instrument (always enabled)
-        st.markdown("## 1. Instrument")
         status = manager.get_info()
-        
-        is_connected = status["connected"]
-def render_sidebar(manager: InstrumentManager, calibration_service: CalibrationService) -> None:
-    """Sequential sidebar configuration: Instrument → Measurement Setup → Calibration."""
-
-    with st.sidebar:
-        st.markdown("# Configuration")
-        st.markdown("Complete each section in order")
-        st.markdown("---")
-        
-        # SECTION 1: Instrument (always enabled)
-        st.markdown("## 1. Instrument")
-        status = manager.get_info()
-        
         is_connected = status["connected"]
         
+        # Color-coded section header
         if is_connected:
-            st.success("Connected")
-            if status["info"]:
+            st.markdown('<h2 style="color: #0090D0;">1. Instrument</h2>', unsafe_allow_html=True)
+        else:
+            st.markdown('<h2 style="color: #FF9200;">1. Instrument</h2>', unsafe_allow_html=True)
+        
+        # Collapsible connection form
+        with st.expander("Connection Settings", expanded=not is_connected):
+            # Show instrument info when connected
+            if is_connected and status["info"]:
                 info = status["info"]
                 st.markdown(f"**{info.get('manufacturer', 'Unknown')} {info.get('model', '')}**")
                 st.caption(f"SN: {info.get('serial', 'N/A')}")
-        else:
-            st.warning("Not connected")
-        
-        with st.form("connection_form", clear_on_submit=False):
-            instrument_type = st.selectbox(
-                "Type",
-                options=["auto", "simulation", "zva"],
-                index=0,
-                help="Auto: Use config • Simulation: Offline • ZVA: R&S",
-            )
+                st.markdown("---")
             
-            address = st.text_input(
-                "SCPI Address",
-                value=status["info"].get("address", "") if status["info"] else settings.vna_address or "",
-                help="Format: TCPIP::192.168.1.100::INSTR",
-                disabled=instrument_type == "simulation",
-            )
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                connect_btn = st.form_submit_button("Connect", type="primary", disabled=is_connected)
-            with col2:
-                disconnect_btn = st.form_submit_button("Disconnect", disabled=not is_connected)
-            
-            if connect_btn:
-                try:
-                    with st.spinner("Connecting..."):
-                        manager.connect(
-                            instrument_type=instrument_type,
-                            address=address or None,
-                        )
-                    st.success("Connected!")
+            with st.form("connection_form", clear_on_submit=False):
+                instrument_type = st.selectbox(
+                    "Type",
+                    options=["auto", "simulation", "zva"],
+                    index=0,
+                    help="Auto: Use config • Simulation: Offline • ZVA: R&S",
+                )
+                
+                address = st.text_input(
+                    "SCPI Address",
+                    value=status["info"].get("address", "") if status["info"] else settings.vna_address or "",
+                    help="Format: TCPIP::192.168.1.100::INSTR",
+                    disabled=instrument_type == "simulation",
+                )
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    connect_btn = st.form_submit_button("Connect", type="primary", disabled=is_connected)
+                with col2:
+                    disconnect_btn = st.form_submit_button("Disconnect", disabled=not is_connected)
+                
+                if connect_btn:
+                    try:
+                        with st.spinner("Connecting..."):
+                            manager.connect(
+                                instrument_type=instrument_type,
+                                address=address or None,
+                            )
+                        st.success("Connected!")
+                        st.rerun()
+                    except Exception as exc:
+                        st.error(f"Failed: {exc}")
+                
+                if disconnect_btn:
+                    manager.disconnect()
                     st.rerun()
-                except Exception as exc:
-                    st.error(f"Failed: {exc}")
-            
-            if disconnect_btn:
-                manager.disconnect()
-                st.rerun()
         
         st.markdown("---")
         
         # SECTION 2: Measurement Setup (enabled only if connected)
-        st.markdown("## 2. Measurement Setup")
+        # Track if setup has been configured at least once
+        if 'measurement_setup_applied' not in st.session_state:
+            st.session_state['measurement_setup_applied'] = False
+        
+        measurement_configured = is_connected  # Track if setup is configured
+        
+        if is_connected and st.session_state['measurement_setup_applied']:
+            st.markdown('<h2 style="color: #0090D0;">2. Measurement Setup</h2>', unsafe_allow_html=True)
+        else:
+            st.markdown('<h2 style="color: #FF9200;">2. Measurement Setup</h2>', unsafe_allow_html=True)
         
         if not is_connected:
-            st.info("Complete Instrument section first")
+            st.markdown('<p style="color: #FF9200; background-color: rgba(255, 146, 0, 0.1); padding: 0.5rem; border-radius: 0.25rem;">Complete Instrument section first</p>', unsafe_allow_html=True)
         else:
             config = get_measurement_config()
             
-            with st.form("measurement_setup_form"):
-                start_mhz = st.number_input(
-                    "Start (MHz)",
-                    min_value=0.001,
-                    max_value=67000.0,
-                    value=float(config.start_freq / 1e6),
-                    step=1.0,
-                    format="%.3f",
-                )
-                stop_mhz = st.number_input(
-                    "Stop (MHz)",
-                    min_value=float(start_mhz + 0.001),
-                    max_value=67000.0,
-                    value=float(config.stop_freq / 1e6),
-                    step=1.0,
-                    format="%.3f",
-                )
-                points = st.number_input(
-                    "Points",
-                    min_value=11,
-                    max_value=200001,
-                    value=int(config.points),
-                    step=10,
-                )
-                if_bw = st.number_input(
-                    "IF Bandwidth (Hz)",
-                    min_value=1.0,
-                    max_value=1e6,
-                    value=float(config.if_bandwidth),
-                    step=100.0,
-                )
-                power = st.number_input(
-                    "Power (dBm)",
-                    min_value=-80.0,
-                    max_value=30.0,
-                    value=float(config.power),
-                    step=1.0,
-                )
-                
-                apply_btn = st.form_submit_button("Apply Setup", type="primary")
-                
-                if apply_btn:
-                    try:
-                        new_config = MeasurementConfig(
-                            start_freq=float(start_mhz) * 1e6,
-                            stop_freq=float(stop_mhz) * 1e6,
-                            points=int(points),
-                            if_bandwidth=float(if_bw),
-                            power=float(power),
-                            port_count=config.port_count,
-                            source_port=config.source_port,
-                            destination_port=config.destination_port,
-                            averaging=config.averaging,
-                            sweep_type=config.sweep_type,
-                        )
-                        set_measurement_config(new_config)
-                        
-                        if manager.is_connected:
-                            manager.configure_measurement(
-                                start_freq=new_config.start_freq,
-                                stop_freq=new_config.stop_freq,
-                                points=new_config.points,
-                                if_bandwidth=new_config.if_bandwidth,
-                                power=new_config.power,
-                                port_count=new_config.port_count,
+            with st.expander("Frequency & Power Settings", expanded=not st.session_state['measurement_setup_applied']):
+                with st.form("measurement_setup_form"):
+                    start_mhz = st.text_input(
+                        "Start (MHz)",
+                        value=f"{config.start_freq / 1e6:.3f}",
+                    )
+                    stop_mhz = st.text_input(
+                        "Stop (MHz)",
+                        value=f"{config.stop_freq / 1e6:.3f}",
+                    )
+                    points = st.text_input(
+                        "Points",
+                        value=str(config.points),
+                    )
+                    if_bw_khz = st.text_input(
+                        "IF Bandwidth (kHz)",
+                        value=str(int(config.if_bandwidth / 1e3)),
+                    )
+                    power = st.text_input(
+                        "Power (dBm)",
+                        value=str(config.power),
+                    )
+                    
+                    apply_btn = st.form_submit_button("Apply Setup", type="primary")
+                    
+                    if apply_btn:
+                        try:
+                            new_config = MeasurementConfig(
+                                start_freq=float(start_mhz) * 1e6,
+                                stop_freq=float(stop_mhz) * 1e6,
+                                points=int(points),
+                                if_bandwidth=float(if_bw_khz) * 1e3,
+                                power=float(power),
+                                port_count=config.port_count,
+                                source_port=config.source_port,
+                                destination_port=config.destination_port,
+                                averaging=config.averaging,
+                                sweep_type=config.sweep_type,
                             )
-                        st.success("Setup applied!")
-                    except Exception as exc:
-                        st.error(f"Failed: {exc}")
+                            set_measurement_config(new_config)
+                            
+                            if manager.is_connected:
+                                manager.configure_measurement(
+                                    start_freq=new_config.start_freq,
+                                    stop_freq=new_config.stop_freq,
+                                    points=new_config.points,
+                                    if_bandwidth=new_config.if_bandwidth,
+                                    power=new_config.power,
+                                    port_count=new_config.port_count,
+                                )
+                            st.session_state['measurement_setup_applied'] = True
+                            st.rerun()
+                        except Exception as exc:
+                            st.error(f"Failed: {exc}")
         
         st.markdown("---")
         
         # SECTION 3: Calibration (enabled only if measurement setup is configured)
-        st.markdown("## 3. Calibration")
+        is_calibrated = calibration_service.is_valid()
         
-        measurement_configured = is_connected
+        if is_calibrated:
+            st.markdown('<h2 style="color: #0090D0;">3. Calibration</h2>', unsafe_allow_html=True)
+        elif measurement_configured:
+            st.markdown('<h2 style="color: #FF9200;">3. Calibration</h2>', unsafe_allow_html=True)
+        else:
+            st.markdown('<h2 style="color: #FF9200;">3. Calibration</h2>', unsafe_allow_html=True)
         
         if not measurement_configured:
-            st.info("Complete Measurement Setup first")
+            st.markdown('<p style="color: #FF9200; background-color: rgba(255, 146, 0, 0.1); padding: 0.5rem; border-radius: 0.25rem;">Complete Measurement Setup first</p>', unsafe_allow_html=True)
         else:
-            if calibration_service.is_valid():
-                record = calibration_service.current
-                st.success("Calibrated")
-                if record:
-                    st.caption(f"Method: {record.method}")
-                    st.caption(f"Time: {record.timestamp.strftime('%H:%M')}")
-                    if record.calibration_kit_name:
-                        st.caption(f"Kit: {record.calibration_kit_name}")
-            else:
-                st.warning("Calibration required")
-                st.caption("Use Calibration tab to calibrate")
+            # Calibration kit selection
+            kits = calibration_service.list_calibration_kits()
+            kit_lookup = {kit["id"]: kit for kit in kits}
+            selected_kit_id = st.session_state.get(SESSION_KEYS["selected_calibration_kit"])
+            if selected_kit_id not in kit_lookup and kits:
+                selected_kit_id = kits[0]["id"]
+                st.session_state[SESSION_KEYS["selected_calibration_kit"]] = selected_kit_id
             
-            if st.button("Go to Calibration", use_container_width=True):
+            if kits:
+                index = (
+                    [i for i, kit in enumerate(kits) if kit["id"] == selected_kit_id][0]
+                    if selected_kit_id in kit_lookup
+                    else 0
+                )
+                selected_kit_id = st.selectbox(
+                    "Calibration Kit",
+                    options=[kit["id"] for kit in kits],
+                    index=index,
+                    format_func=lambda kit_id: kit_lookup[kit_id]["name"],
+                    key="sidebar_cal_kit_select",
+                )
+                st.session_state[SESSION_KEYS["selected_calibration_kit"]] = selected_kit_id
+                selected_kit = kit_lookup[selected_kit_id]
+                
+                # Show kit details compactly
+                serial = selected_kit.get("serial", "—")
+                cal_date = selected_kit.get("calibration_date", "—")
+                st.caption(f"SN: {serial} • Cal Date: {cal_date}")
+            else:
+                st.markdown('<p style="color: #FF9200; background-color: rgba(255, 146, 0, 0.1); padding: 0.5rem; border-radius: 0.25rem;">No calibration kits available</p>', unsafe_allow_html=True)
+            
+            st.markdown("---")
+            
+            # OSL Calibration measurements
+            if 'cal_open_acquired' not in st.session_state:
+                st.session_state['cal_open_acquired'] = False
+            if 'cal_short_acquired' not in st.session_state:
+                st.session_state['cal_short_acquired'] = False
+            if 'cal_load_acquired' not in st.session_state:
+                st.session_state['cal_load_acquired'] = False
+            
+            all_measured = (st.session_state['cal_open_acquired'] and 
+                          st.session_state['cal_short_acquired'] and 
+                          st.session_state['cal_load_acquired'])
+            
+            with st.expander("OSL Measurements", expanded=not all_measured):
+                # Measure Open
+                if st.session_state['cal_open_acquired']:
+                    if st.button("✓ Measure Open", use_container_width=True, key="sidebar_meas_open", 
+                               disabled=True, help="Open standard acquired"):
+                        pass
+                    st.markdown('<style>button[key="sidebar_meas_open"] { background-color: #0090D0 !important; }</style>', 
+                              unsafe_allow_html=True)
+                else:
+                    if st.button("Measure Open", use_container_width=True, key="sidebar_meas_open",
+                               type="secondary"):
+                        # Trigger measurement
+                        st.session_state['active_tab'] = 1
+                        st.session_state['trigger_open_measurement'] = True
+                        st.rerun()
+                
+                # Measure Short
+                if st.session_state['cal_short_acquired']:
+                    if st.button("✓ Measure Short", use_container_width=True, key="sidebar_meas_short",
+                               disabled=True, help="Short standard acquired"):
+                        pass
+                    st.markdown('<style>button[key="sidebar_meas_short"] { background-color: #0090D0 !important; }</style>',
+                              unsafe_allow_html=True)
+                else:
+                    if st.button("Measure Short", use_container_width=True, key="sidebar_meas_short",
+                               type="secondary"):
+                        st.session_state['active_tab'] = 1
+                        st.session_state['trigger_short_measurement'] = True
+                        st.rerun()
+                
+                # Measure Load
+                if st.session_state['cal_load_acquired']:
+                    if st.button("✓ Measure Load", use_container_width=True, key="sidebar_meas_load",
+                               disabled=True, help="Load standard acquired"):
+                        pass
+                    st.markdown('<style>button[key="sidebar_meas_load"] { background-color: #0090D0 !important; }</style>',
+                              unsafe_allow_html=True)
+                else:
+                    if st.button("Measure Load", use_container_width=True, key="sidebar_meas_load",
+                               type="secondary"):
+                        st.session_state['active_tab'] = 1
+                        st.session_state['trigger_load_measurement'] = True
+                        st.rerun()
+            
+            # Apply Calibration button (only shown after all measurements)
+            if all_measured:
+                st.markdown("---")
+                if st.button("Apply Calibration", use_container_width=True, key="sidebar_apply_cal", type="primary"):
+                    st.session_state['active_tab'] = 1
+                    st.session_state['trigger_apply_calibration'] = True
+                    st.rerun()
+            
+            st.markdown("---")
+            
+            # Import button at bottom
+            if st.button("Import Calibration Kit", use_container_width=True, key="sidebar_import_kit_btn"):
                 st.session_state['active_tab'] = 1  # Switch to Calibration tab
+                st.session_state['show_kit_import'] = True
+                st.rerun()
 
 
 def render_overview_tab(
@@ -864,8 +940,12 @@ def render_calibration_tab(
         st.warning("No calibration kits available. Import one below.")
         selected_kit = None
 
-    # Kit import (collapsed by default)
-    with st.expander("Import New Calibration Kit"):
+    # Kit import (expand if triggered from sidebar)
+    expand_import = st.session_state.get('show_kit_import', False)
+    if expand_import:
+        st.session_state['show_kit_import'] = False  # Reset flag
+    
+    with st.expander("Import New Calibration Kit", expanded=expand_import):
         kit_name_input = st.text_input("Kit name", value="", key="cal_kit_name_input")
         col_meta1, col_meta2 = st.columns(2)
         with col_meta1:
