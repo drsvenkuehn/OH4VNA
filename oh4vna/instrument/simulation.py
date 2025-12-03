@@ -7,6 +7,7 @@ from typing import Dict, Optional, List
 
 import numpy as np
 from skrf import Frequency, Network
+from skrf import Circuit
 
 from .base import VNAInterface
 
@@ -90,7 +91,13 @@ class SimulationVNA(VNAInterface):
         self._sweep_time = 0.5  # seconds
         self._port_count = 2
 
+        # Default: analytical coupler. Can be overridden by emulator coupler.
         self._coupler = _OH4VNACouplerModel()
+        self._emulator_coupler: Optional[Network] = None
+        self._downlink_gain_db: float = -30.0
+        self._uplink_gain_db: float = 20.0
+        self._emu_freq_limits: Optional[tuple[float, float]] = None
+        self._emu_cal_enabled: bool = True
         self._fixture: Optional[Network] = None
         self._fixture_name = "Open"
 
@@ -172,7 +179,51 @@ class SimulationVNA(VNAInterface):
             raise RuntimeError("VNA not connected")
 
         frequency = Frequency(start=self._start_freq, stop=self._stop_freq, npoints=self._points, unit="Hz")
+        
+        # If emulator coupler is configured, build the circuit like the colleague's emulator
+        if self._emulator_coupler is not None:
+            coupler_net = self._emulator_coupler.interpolate(frequency)
 
+            # Build downlink/uplink unilateral links
+            def _make_link(freq: Frequency, gain_db: float, name: str) -> Network:
+                mag = 10 ** (gain_db / 20.0)
+                s = np.zeros((freq.npoints, 2, 2), dtype=complex)
+                s[:, 1, 0] = mag
+                return Network(frequency=freq, s=s, name=name)
+
+            downlink_net = _make_link(frequency, self._downlink_gain_db, "Downlink")
+            uplink_net = _make_link(frequency, self._uplink_gain_db, "Uplink")
+
+            # Fixture defaults to Open if none
+            if self._fixture is None:
+                s_open = np.ones((frequency.npoints, 1, 1), dtype=complex)
+                fixture_ntwk = Network(frequency=frequency, s=s_open, name="Open")
+            else:
+                fixture_ntwk = self._fixture.interpolate(frequency)
+
+            # Termination for isolated port
+            iso_term = Network(frequency=frequency, s=np.zeros((frequency.npoints, 1, 1), dtype=complex), name="IsoMatch")
+
+            # External VNA ports
+            p0 = Circuit.Port(frequency, z0=50, name="P0")
+            p1 = Circuit.Port(frequency, z0=50, name="P1")
+
+            circuit = Circuit([
+                [(p0, 0),          (downlink_net, 0)],
+                [(downlink_net, 1),(coupler_net, 0)],
+                [(coupler_net, 1), (fixture_ntwk, 0)],
+                [(coupler_net, 2), (uplink_net, 0)],
+                [(uplink_net, 1),  (p1, 0)],
+                [(coupler_net, 3), (iso_term, 0)],
+            ])
+
+            res = circuit.network
+            s21 = res.s[:, 1, 0][:, None, None]
+            out = Network(frequency=frequency, s=s21)
+            out.name = f"Emu Meas ({self._fixture_name})"
+            return out
+
+        # Fallback: analytical coupler model
         if self._fixture is None:
             gamma = np.ones(frequency.npoints, dtype=complex)
         else:
@@ -213,4 +264,34 @@ class SimulationVNA(VNAInterface):
 
     def get_coupler_network(self) -> Network:
         frequency = Frequency(start=self._start_freq, stop=self._stop_freq, npoints=self._points, unit="Hz")
+        if self._emulator_coupler is not None:
+            return self._emulator_coupler.interpolate(frequency)
         return self._coupler.three_port_network(frequency)
+
+    # ------------------------------------------------------------------
+    # Emulator integration
+    # ------------------------------------------------------------------
+    def load_emulator_coupler(self, touchstone_path: str) -> None:
+        """Load a 4-port coupler network from a Touchstone file for emulator-based simulation.
+
+        The port mapping follows the colleague's emulator:
+        0: input, 1: through, 2: coupled, 3: isolated.
+        """
+        self._emulator_coupler = Network(touchstone_path)
+        # Cache emulator frequency limits for UI constraints
+        f = self._emulator_coupler.frequency.f
+        if f is not None and len(f):
+            self._emu_freq_limits = (float(f.min()), float(f.max()))
+        # If the file is 4-port, keep as-is; if 3-port, still usable.
+
+    def set_emulator_link_gains(self, downlink_db: float = -30.0, uplink_db: float = 20.0) -> None:
+        self._downlink_gain_db = float(downlink_db)
+        self._uplink_gain_db = float(uplink_db)
+
+    def set_emulator_calibration_enabled(self, enabled: bool = True) -> None:
+        """Enable using emulator-style OSL calibration when applying calibration in simulation mode."""
+        self._emu_cal_enabled = bool(enabled)
+
+    def get_emulator_frequency_limits(self) -> Optional[tuple[float, float]]:
+        """Return (min_hz, max_hz) limits from emulator coupler file for UI constraints."""
+        return self._emu_freq_limits

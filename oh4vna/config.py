@@ -35,6 +35,14 @@ class Settings(BaseSettings):
     # Calibration
     cal_kit_name: str = Field("Unknown", env="OH4VNA_CAL_KIT")
 
+    # Emulator integration (optional)
+    emulator_coupler_path: Optional[Path] = Field(
+        default=Path("./emulator/Sprams MACP-011045_corrected/MACP-011045_02_corrected.s4p"),
+        env="OH4VNA_EMULATOR_COUPLER"
+    )
+    emulator_downlink_gain_db: float = Field(-30.0, env="OH4VNA_EMULATOR_DL_DB")
+    emulator_uplink_gain_db: float = Field(20.0, env="OH4VNA_EMULATOR_UL_DB")
+
     def model_post_init(self, __context: Any) -> None:
         """Ensure data directories exist."""
         self.data_root.mkdir(parents=True, exist_ok=True)

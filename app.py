@@ -23,6 +23,13 @@ from oh4vna.instrument import SimulationVNA
 from oh4vna.services import CalibrationService, InstrumentManager, MeasurementService
 
 
+# Z43 Corporate Design Colors
+Z43_BLUE = "#0090D0"
+Z43_ORANGE = "#FF9200"
+Z43_RED = "#9B2423"
+Z43_YELLOW = "#FFDD00"
+
+
 SESSION_KEYS = {
     "instrument": "instrument_manager",
     "repository": "metadata_repository",
@@ -499,9 +506,9 @@ def render_sidebar(manager: InstrumentManager, calibration_service: CalibrationS
         
         # Color-coded section header
         if is_connected:
-            st.markdown('<h2 style="color: #0090D0;">1. Instrument</h2>', unsafe_allow_html=True)
+            st.markdown(f'<h2 style="color: {Z43_BLUE};">1. Instrument</h2>', unsafe_allow_html=True)
         else:
-            st.markdown('<h2 style="color: #FF9200;">1. Instrument</h2>', unsafe_allow_html=True)
+            st.markdown(f'<h2 style="color: {Z43_ORANGE};">1. Instrument</h2>', unsafe_allow_html=True)
         
         # Collapsible connection form
         with st.expander("Connection Settings", expanded=not is_connected):
@@ -559,14 +566,21 @@ def render_sidebar(manager: InstrumentManager, calibration_service: CalibrationS
         measurement_configured = is_connected  # Track if setup is configured
         
         if is_connected and st.session_state['measurement_setup_applied']:
-            st.markdown('<h2 style="color: #0090D0;">2. Measurement Setup</h2>', unsafe_allow_html=True)
+            st.markdown(f'<h2 style="color: {Z43_BLUE};">2. Measurement Setup</h2>', unsafe_allow_html=True)
         else:
-            st.markdown('<h2 style="color: #FF9200;">2. Measurement Setup</h2>', unsafe_allow_html=True)
+            st.markdown(f'<h2 style="color: {Z43_ORANGE};">2. Measurement Setup</h2>', unsafe_allow_html=True)
         
         if not is_connected:
-            st.markdown('<p style="color: #FF9200; background-color: rgba(255, 146, 0, 0.1); padding: 0.5rem; border-radius: 0.25rem;">Complete Instrument section first</p>', unsafe_allow_html=True)
+            st.markdown(f'<p style="color: {Z43_ORANGE}; background-color: rgba(255, 146, 0, 0.1); padding: 0.5rem; border-radius: 0.25rem;">Complete Instrument section first</p>', unsafe_allow_html=True)
         else:
             config = get_measurement_config()
+            # If in simulation mode with emulator limits, constrain inputs
+            emu_limits = status.get("emulator_limits") if isinstance(status, dict) else None
+            min_mhz = None
+            max_mhz = None
+            if emu_limits:
+                min_mhz = float(emu_limits.get("min_hz", 1e6)) / 1e6
+                max_mhz = float(emu_limits.get("max_hz", 6e9)) / 1e6
             
             with st.expander("Frequency & Power Settings", expanded=not st.session_state['measurement_setup_applied']):
                 with st.form("measurement_setup_form"):
@@ -595,6 +609,14 @@ def render_sidebar(manager: InstrumentManager, calibration_service: CalibrationS
                     
                     if apply_btn:
                         try:
+                            # Validate against emulator frequency limits
+                            if min_mhz is not None and max_mhz is not None:
+                                if not (min_mhz <= float(start_mhz) <= max_mhz):
+                                    raise ValueError(f"Start must be within {min_mhz:.3f}-{max_mhz:.3f} MHz (emulator)")
+                                if not (min_mhz <= float(stop_mhz) <= max_mhz):
+                                    raise ValueError(f"Stop must be within {min_mhz:.3f}-{max_mhz:.3f} MHz (emulator)")
+                                if float(stop_mhz) <= float(start_mhz):
+                                    raise ValueError("Stop must be greater than Start")
                             new_config = MeasurementConfig(
                                 start_freq=float(start_mhz) * 1e6,
                                 stop_freq=float(stop_mhz) * 1e6,
@@ -618,6 +640,12 @@ def render_sidebar(manager: InstrumentManager, calibration_service: CalibrationS
                                     power=new_config.power,
                                     port_count=new_config.port_count,
                                 )
+                            
+                            # Invalidate calibration when setup changes
+                            st.session_state['cal_open_acquired'] = False
+                            st.session_state['cal_short_acquired'] = False
+                            st.session_state['cal_load_acquired'] = False
+                            
                             st.session_state['measurement_setup_applied'] = True
                             st.rerun()
                         except Exception as exc:
@@ -629,14 +657,14 @@ def render_sidebar(manager: InstrumentManager, calibration_service: CalibrationS
         is_calibrated = calibration_service.is_valid()
         
         if is_calibrated:
-            st.markdown('<h2 style="color: #0090D0;">3. Calibration</h2>', unsafe_allow_html=True)
+            st.markdown(f'<h2 style="color: {Z43_BLUE};">3. Calibration</h2>', unsafe_allow_html=True)
         elif measurement_configured:
-            st.markdown('<h2 style="color: #FF9200;">3. Calibration</h2>', unsafe_allow_html=True)
+            st.markdown(f'<h2 style="color: {Z43_ORANGE};">3. Calibration</h2>', unsafe_allow_html=True)
         else:
-            st.markdown('<h2 style="color: #FF9200;">3. Calibration</h2>', unsafe_allow_html=True)
+            st.markdown(f'<h2 style="color: {Z43_ORANGE};">3. Calibration</h2>', unsafe_allow_html=True)
         
         if not measurement_configured:
-            st.markdown('<p style="color: #FF9200; background-color: rgba(255, 146, 0, 0.1); padding: 0.5rem; border-radius: 0.25rem;">Complete Measurement Setup first</p>', unsafe_allow_html=True)
+            st.markdown(f'<p style="color: {Z43_ORANGE}; background-color: rgba(255, 146, 0, 0.1); padding: 0.5rem; border-radius: 0.25rem;">Complete Measurement Setup first</p>', unsafe_allow_html=True)
         else:
             # Calibration kit selection
             kits = calibration_service.list_calibration_kits()
@@ -667,7 +695,7 @@ def render_sidebar(manager: InstrumentManager, calibration_service: CalibrationS
                 cal_date = selected_kit.get("calibration_date", "—")
                 st.caption(f"SN: {serial} • Cal Date: {cal_date}")
             else:
-                st.markdown('<p style="color: #FF9200; background-color: rgba(255, 146, 0, 0.1); padding: 0.5rem; border-radius: 0.25rem;">No calibration kits available</p>', unsafe_allow_html=True)
+                st.markdown(f'<p style="color: {Z43_ORANGE}; background-color: rgba(255, 146, 0, 0.1); padding: 0.5rem; border-radius: 0.25rem;">No calibration kits available</p>', unsafe_allow_html=True)
             
             st.markdown("---")
             
@@ -683,49 +711,103 @@ def render_sidebar(manager: InstrumentManager, calibration_service: CalibrationS
                           st.session_state['cal_short_acquired'] and 
                           st.session_state['cal_load_acquired'])
             
+            # Check if calibration has been applied
+            cal_applied = calibration_service.is_valid()
+            
             with st.expander("OSL Measurements", expanded=not all_measured):
                 # Measure Open
-                if st.session_state['cal_open_acquired']:
-                    if st.button("✓ Measure Open", use_container_width=True, key="sidebar_meas_open", 
-                               disabled=True, help="Open standard acquired"):
-                        pass
-                    st.markdown('<style>button[key="sidebar_meas_open"] { background-color: #0090D0 !important; }</style>', 
+                # Orange = not acquired, White = acquired but not applied, Blue = calibration applied
+                if cal_applied:
+                    btn_type_open = "primary"
+                    btn_label_open = "Measure Open"
+                    btn_disabled_open = False
+                elif st.session_state['cal_open_acquired']:
+                    btn_type_open = "secondary"
+                    btn_label_open = "Measure Open"
+                    btn_disabled_open = False
+                else:
+                    btn_type_open = "secondary"
+                    btn_label_open = "Measure Open"
+                    btn_disabled_open = False
+                
+                if st.button(btn_label_open, use_container_width=True, key="sidebar_meas_open",
+                           type=btn_type_open, disabled=btn_disabled_open):
+                    st.session_state['active_tab'] = 1
+                    st.session_state['trigger_open_measurement'] = True
+                    st.rerun()
+                
+                # Apply color styling
+                if cal_applied:
+                    st.markdown(f'<style>button[key="sidebar_meas_open"] {{ background-color: {Z43_BLUE} !important; color: white !important; }}</style>', 
+                              unsafe_allow_html=True)
+                elif st.session_state['cal_open_acquired']:
+                    st.markdown('<style>button[key="sidebar_meas_open"] { background-color: white !important; color: black !important; border: 1px solid #ccc !important; }</style>', 
                               unsafe_allow_html=True)
                 else:
-                    if st.button("Measure Open", use_container_width=True, key="sidebar_meas_open",
-                               type="secondary"):
-                        # Trigger measurement
-                        st.session_state['active_tab'] = 1
-                        st.session_state['trigger_open_measurement'] = True
-                        st.rerun()
+                    st.markdown(f'<style>button[key="sidebar_meas_open"] {{ background-color: {Z43_ORANGE} !important; color: white !important; }}</style>', 
+                              unsafe_allow_html=True)
                 
                 # Measure Short
-                if st.session_state['cal_short_acquired']:
-                    if st.button("✓ Measure Short", use_container_width=True, key="sidebar_meas_short",
-                               disabled=True, help="Short standard acquired"):
-                        pass
-                    st.markdown('<style>button[key="sidebar_meas_short"] { background-color: #0090D0 !important; }</style>',
+                if cal_applied:
+                    btn_type_short = "primary"
+                    btn_label_short = "Measure Short"
+                    btn_disabled_short = False
+                elif st.session_state['cal_short_acquired']:
+                    btn_type_short = "secondary"
+                    btn_label_short = "Measure Short"
+                    btn_disabled_short = False
+                else:
+                    btn_type_short = "secondary"
+                    btn_label_short = "Measure Short"
+                    btn_disabled_short = False
+                
+                if st.button(btn_label_short, use_container_width=True, key="sidebar_meas_short",
+                           type=btn_type_short, disabled=btn_disabled_short):
+                    st.session_state['active_tab'] = 1
+                    st.session_state['trigger_short_measurement'] = True
+                    st.rerun()
+                
+                # Apply color styling
+                if cal_applied:
+                    st.markdown(f'<style>button[key="sidebar_meas_short"] {{ background-color: {Z43_BLUE} !important; color: white !important; }}</style>',
+                              unsafe_allow_html=True)
+                elif st.session_state['cal_short_acquired']:
+                    st.markdown('<style>button[key="sidebar_meas_short"] { background-color: white !important; color: black !important; border: 1px solid #ccc !important; }</style>',
                               unsafe_allow_html=True)
                 else:
-                    if st.button("Measure Short", use_container_width=True, key="sidebar_meas_short",
-                               type="secondary"):
-                        st.session_state['active_tab'] = 1
-                        st.session_state['trigger_short_measurement'] = True
-                        st.rerun()
+                    st.markdown(f'<style>button[key="sidebar_meas_short"] {{ background-color: {Z43_ORANGE} !important; color: white !important; }}</style>',
+                              unsafe_allow_html=True)
                 
                 # Measure Load
-                if st.session_state['cal_load_acquired']:
-                    if st.button("✓ Measure Load", use_container_width=True, key="sidebar_meas_load",
-                               disabled=True, help="Load standard acquired"):
-                        pass
-                    st.markdown('<style>button[key="sidebar_meas_load"] { background-color: #0090D0 !important; }</style>',
+                if cal_applied:
+                    btn_type_load = "primary"
+                    btn_label_load = "Measure Load"
+                    btn_disabled_load = False
+                elif st.session_state['cal_load_acquired']:
+                    btn_type_load = "secondary"
+                    btn_label_load = "Measure Load"
+                    btn_disabled_load = False
+                else:
+                    btn_type_load = "secondary"
+                    btn_label_load = "Measure Load"
+                    btn_disabled_load = False
+                
+                if st.button(btn_label_load, use_container_width=True, key="sidebar_meas_load",
+                           type=btn_type_load, disabled=btn_disabled_load):
+                    st.session_state['active_tab'] = 1
+                    st.session_state['trigger_load_measurement'] = True
+                    st.rerun()
+                
+                # Apply color styling
+                if cal_applied:
+                    st.markdown(f'<style>button[key="sidebar_meas_load"] {{ background-color: {Z43_BLUE} !important; color: white !important; }}</style>',
+                              unsafe_allow_html=True)
+                elif st.session_state['cal_load_acquired']:
+                    st.markdown('<style>button[key="sidebar_meas_load"] { background-color: white !important; color: black !important; border: 1px solid #ccc !important; }</style>',
                               unsafe_allow_html=True)
                 else:
-                    if st.button("Measure Load", use_container_width=True, key="sidebar_meas_load",
-                               type="secondary"):
-                        st.session_state['active_tab'] = 1
-                        st.session_state['trigger_load_measurement'] = True
-                        st.rerun()
+                    st.markdown(f'<style>button[key="sidebar_meas_load"] {{ background-color: {Z43_ORANGE} !important; color: white !important; }}</style>',
+                              unsafe_allow_html=True)
             
             # Apply Calibration button (only shown after all measurements)
             if all_measured:
@@ -997,6 +1079,73 @@ def render_calibration_tab(
     st.markdown("---")
     st.subheader("Calibration Wizard")
     
+    # Handle triggers from sidebar - perform measurements directly
+    config = get_measurement_config()
+    simulation_mode = manager.get_info().get("simulation_mode", False)
+    
+    if st.session_state.get('trigger_open_measurement'):
+        st.session_state['trigger_open_measurement'] = False
+        st.session_state["cal_wizard_step"] = 0
+        # Perform Open measurement
+        try:
+            if simulation_mode and selected_kit:
+                fixture_path = selected_kit["files"].get("open")
+                if fixture_path and Path(fixture_path).exists():
+                    fixture_network = Network(fixture_path)
+                    manager.set_simulation_fixture(fixture_network, name="Open")
+            
+            reflection_network = capture_reflection_network(manager, config)
+            st.session_state["cal_wizard_standards"]["open"] = {
+                "network": reflection_network,
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+            st.session_state['cal_open_acquired'] = True
+            st.session_state["cal_wizard_step"] = 1
+        except Exception as exc:
+            st.error(f"Failed to measure Open: {exc}")
+    
+    if st.session_state.get('trigger_short_measurement'):
+        st.session_state['trigger_short_measurement'] = False
+        st.session_state["cal_wizard_step"] = 1
+        # Perform Short measurement
+        try:
+            if simulation_mode and selected_kit:
+                fixture_path = selected_kit["files"].get("short")
+                if fixture_path and Path(fixture_path).exists():
+                    fixture_network = Network(fixture_path)
+                    manager.set_simulation_fixture(fixture_network, name="Short")
+            
+            reflection_network = capture_reflection_network(manager, config)
+            st.session_state["cal_wizard_standards"]["short"] = {
+                "network": reflection_network,
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+            st.session_state['cal_short_acquired'] = True
+            st.session_state["cal_wizard_step"] = 2
+        except Exception as exc:
+            st.error(f"Failed to measure Short: {exc}")
+    
+    if st.session_state.get('trigger_load_measurement'):
+        st.session_state['trigger_load_measurement'] = False
+        st.session_state["cal_wizard_step"] = 2
+        # Perform Load measurement
+        try:
+            if simulation_mode and selected_kit:
+                fixture_path = selected_kit["files"].get("load")
+                if fixture_path and Path(fixture_path).exists():
+                    fixture_network = Network(fixture_path)
+                    manager.set_simulation_fixture(fixture_network, name="Load")
+            
+            reflection_network = capture_reflection_network(manager, config)
+            st.session_state["cal_wizard_standards"]["load"] = {
+                "network": reflection_network,
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+            st.session_state['cal_load_acquired'] = True
+            st.session_state["cal_wizard_step"] = 3
+        except Exception as exc:
+            st.error(f"Failed to measure Load: {exc}")
+    
     standards = ["Open", "Short", "Load"]
     current_step = st.session_state["cal_wizard_step"]
     
@@ -1050,6 +1199,14 @@ def render_calibration_tab(
                         "timestamp": datetime.utcnow().isoformat(),
                     }
                     
+                    # Update sidebar acquisition flag
+                    if current_standard == "Open":
+                        st.session_state['cal_open_acquired'] = True
+                    elif current_standard == "Short":
+                        st.session_state['cal_short_acquired'] = True
+                    elif current_standard == "Load":
+                        st.session_state['cal_load_acquired'] = True
+                    
                     # Advance to next step
                     st.session_state["cal_wizard_step"] = current_step + 1
                     st.success(f"{current_standard} measurement captured!")
@@ -1083,6 +1240,11 @@ def render_calibration_tab(
         # All standards captured - finish calibration
         st.success("All standards measured! Ready to compute calibration.")
         
+        # Handle trigger from sidebar "Apply Calibration" button
+        auto_submit = st.session_state.get('trigger_apply_calibration', False)
+        if auto_submit:
+            st.session_state['trigger_apply_calibration'] = False
+        
         with st.form("calibration_completion"):
             st.markdown("#### Calibration Details")
             operator = st.text_input("Operator name:", value="")
@@ -1095,6 +1257,10 @@ def render_calibration_tab(
                 if st.form_submit_button("Restart"):
                     st.session_state["cal_wizard_step"] = 0
                     st.session_state["cal_wizard_standards"] = {}
+                    # Reset sidebar flags
+                    st.session_state['cal_open_acquired'] = False
+                    st.session_state['cal_short_acquired'] = False
+                    st.session_state['cal_load_acquired'] = False
                     st.rerun()
             
             if submitted:
@@ -1122,6 +1288,9 @@ def render_calibration_tab(
                         # Reset wizard
                         st.session_state["cal_wizard_step"] = 0
                         st.session_state["cal_wizard_standards"] = {}
+                        
+                        # Keep sidebar flags set (calibration is complete)
+                        # User can see all three standards remain checked
                         
                         # Clear simulation fixture if needed
                         if manager.get_info().get("simulation_mode", False):

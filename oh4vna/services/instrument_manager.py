@@ -54,6 +54,17 @@ class InstrumentManager:
                 self._instrument = SimulationVNA()
                 success = self._instrument.connect()
                 connect_address = "SIMULATION"
+                # Load emulator coupler and link gains from settings if available
+                try:
+                    emu_path = settings.emulator_coupler_path if hasattr(settings, "emulator_coupler_path") else None
+                    if emu_path:
+                        self._instrument.load_emulator_coupler(str(emu_path))
+                    emu_dl = getattr(settings, "emulator_downlink_gain_db", -30.0)
+                    emu_ul = getattr(settings, "emulator_uplink_gain_db", 20.0)
+                    self._instrument.set_emulator_link_gains(downlink_db=float(emu_dl), uplink_db=float(emu_ul))
+                    self._instrument.set_emulator_calibration_enabled(True)
+                except Exception as e:
+                    logger.warning(f"Emulator integration skipped: {e}")
             elif instrument_type == "zva":
                 self._instrument = ZVA()
                 connect_address = address or settings.vna_address
@@ -102,11 +113,17 @@ class InstrumentManager:
     
     def get_info(self) -> Dict[str, Any]:
         """Get instrument information and status."""
-        return {
+        info = {
             "connected": self.is_connected,
             "info": self._instrument_info,
             "simulation_mode": settings.simulation_mode
         }
+        # Add emulator limits when available
+        if isinstance(self._instrument, SimulationVNA):
+            limits = self._instrument.get_emulator_frequency_limits()
+            if limits:
+                info["emulator_limits"] = {"min_hz": limits[0], "max_hz": limits[1]}
+        return info
 
     def get_port_count(self) -> int:
         """Return the number of ports available on the current instrument."""
